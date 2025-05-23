@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flannel Fury: Bottle Barrage</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background: #222;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="1024" height="768"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const singerImg = new Image();
+    singerImg.src = "singer.png";
+
+    const bottleImg = new Image();
+    bottleImg.src = "bottle.png";
+
+    const singer = {
+      width: 96,
+      height: 144,
+      speed: 12,
+      x: canvas.width / 2 - 48,
+      y: canvas.height / 2 - 72,
+    };
+
+    const bottles = [];
+    let health = 100;
+    let score = 0;
+    let frameCount = 0;
+    let difficultyMultiplier = 1.0;
+
+    let assetsLoaded = 0;
+
+    function tryStartGame() {
+      assetsLoaded++;
+      if (assetsLoaded === 2) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    singerImg.onload = tryStartGame;
+    bottleImg.onload = tryStartGame;
+
+    function drawSinger() {
+      ctx.drawImage(singerImg, singer.x, singer.y, singer.width, singer.height);
+    }
+
+    function drawBottle(bottle) {
+      ctx.drawImage(bottleImg, bottle.x, bottle.y, bottle.width, bottle.height);
+    }
+
+    function spawnBottle() {
+      const x = Math.random() * (canvas.width - 32);
+      const baseSpeed = -1.0 - Math.random();
+      bottles.push({ x, y: canvas.height, width: 32, height: 64, speed: baseSpeed * difficultyMultiplier });
+    }
+
+    function updateBottles() {
+      for (let i = bottles.length - 1; i >= 0; i--) {
+        const b = bottles[i];
+        b.y += b.speed;
+
+        if (b.y + b.height < 0) {
+          bottles.splice(i, 1);
+          score++;
+        } else if (
+          b.x < singer.x + singer.width &&
+          b.x + b.width > singer.x &&
+          b.y < singer.y + singer.height &&
+          b.y + b.height > singer.y
+        ) {
+          bottles.splice(i, 1);
+          health -= 1;
+          if (health <= 0) alert("Game Over! Final Score: " + score);
+        }
+      }
+    }
+
+    function drawUI() {
+      ctx.fillStyle = "white";
+      ctx.font = "16px monospace";
+      ctx.fillText("Health: " + health, 10, 20);
+      ctx.fillText("Score: " + score, 10, 40);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawSinger();
+      bottles.forEach(drawBottle);
+      drawUI();
+
+      updateBottles();
+
+      frameCount++;
+      if (frameCount % 180 === 0) spawnBottle();
+      if (frameCount % 1200 === 0) difficultyMultiplier += 0.1; // Increase speed every 20 seconds
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") singer.x -= singer.speed;
+      if (e.key === "ArrowRight") singer.x += singer.speed;
+    });
+  </script>
+</body>
+</html>
