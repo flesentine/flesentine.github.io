@@ -27,7 +27,6 @@
 </head>
 <body>
   <canvas id="gameCanvas" width="1024" height="768"></canvas>
-
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -49,11 +48,12 @@
       y: canvas.height / 2 - 72,
     };
 
-    const bottles = [];
+    let bottles = [];
     let health = 50;
     let score = 0;
     let frameCount = 0;
     let difficultyMultiplier = 1.0;
+    let spawnRate = 180;
     let isGameOver = false;
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
     const mobileSpeedBoost = isMobile ? 10 : 1;
@@ -62,9 +62,7 @@
 
     function tryStartGame() {
       assetsLoaded++;
-      if (assetsLoaded === 3) {
-        requestAnimationFrame(gameLoop);
-      }
+      if (assetsLoaded === 3) requestAnimationFrame(gameLoop);
     }
 
     singerImg.onload = tryStartGame;
@@ -102,6 +100,8 @@
         ) {
           bottles.splice(i, 1);
           health -= 1;
+          difficultyMultiplier = 1.0;
+          spawnRate = 180;
           if (health <= 0 && !isGameOver) {
             isGameOver = true;
             setTimeout(() => alert("Game Over! Final Score: " + score), 100);
@@ -119,7 +119,6 @@
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       drawSinger();
       bottles.forEach(drawBottle);
       drawUI();
@@ -127,8 +126,13 @@
       if (!isGameOver) {
         updateBottles();
         frameCount++;
-        if (frameCount % 180 === 0) spawnBottle();
-        if (frameCount % 1200 === 0) difficultyMultiplier += 0.1;
+        if (frameCount % spawnRate === 0) spawnBottle();
+        if (frameCount % 600 === 0) {
+          difficultyMultiplier += 0.1;
+          spawnRate = Math.max(60, spawnRate - 5);
+          // Increase existing bottle speeds
+          bottles.forEach(b => b.speed *= 1.1);
+        }
       }
 
       requestAnimationFrame(gameLoop);
@@ -143,6 +147,7 @@
     });
 
     canvas.addEventListener("touchstart", handleTouch);
+    canvas.addEventListener("mousemove", handleMouse);
     canvas.addEventListener("touchmove", handleTouch);
 
     function handleTouch(e) {
@@ -152,6 +157,16 @@
         const rect = canvas.getBoundingClientRect();
         const scale = canvas.width / rect.width;
         const x = (touch.clientX - rect.left) * scale;
+        singer.x = x - singer.width / 2;
+        constrainSinger();
+      }
+    }
+
+    function handleMouse(e) {
+      if (!isGameOver) {
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scale;
         singer.x = x - singer.width / 2;
         constrainSinger();
       }
