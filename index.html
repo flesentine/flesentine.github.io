@@ -110,11 +110,9 @@
       }
     }
 
-    function drawUI() {
-      ctx.fillStyle = "white";
-      ctx.font = "16px monospace";
-      ctx.fillText("Health: " + health, 10, 20);
+    ctx.fillText("Health: " + health, 10, 20);
       ctx.fillText("Score: " + score, 10, 40);
+      ctx.fillText("Version: 1", 10, canvas.height - 10);
     }
 
     function gameLoop() {
