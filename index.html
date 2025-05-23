@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
   <title>Flannel Fury: Bottle Barrage</title>
   <style>
     html, body {
@@ -15,9 +15,13 @@
     }
     canvas {
       display: block;
+      margin: auto;
       background: #222;
       width: 100vw;
-      height: 100vh;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      max-height: 100vh;
+      touch-action: none;
     }
   </style>
 </head>
@@ -34,6 +38,9 @@
     const bottleImg = new Image();
     bottleImg.src = "bottle.png";
 
+    const singerDeadImg = new Image();
+    singerDeadImg.src = "singer_dead.png";
+
     const singer = {
       width: 96,
       height: 144,
@@ -43,25 +50,30 @@
     };
 
     const bottles = [];
-    let health = 100;
+    let health = 50;
     let score = 0;
     let frameCount = 0;
     let difficultyMultiplier = 1.0;
+    let isGameOver = false;
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const mobileSpeedBoost = isMobile ? 10 : 1;
 
     let assetsLoaded = 0;
 
     function tryStartGame() {
       assetsLoaded++;
-      if (assetsLoaded === 2) {
+      if (assetsLoaded === 3) {
         requestAnimationFrame(gameLoop);
       }
     }
 
     singerImg.onload = tryStartGame;
     bottleImg.onload = tryStartGame;
+    singerDeadImg.onload = tryStartGame;
 
     function drawSinger() {
-      ctx.drawImage(singerImg, singer.x, singer.y, singer.width, singer.height);
+      const img = isGameOver ? singerDeadImg : singerImg;
+      ctx.drawImage(img, singer.x, singer.y, singer.width, singer.height);
     }
 
     function drawBottle(bottle) {
@@ -70,8 +82,8 @@
 
     function spawnBottle() {
       const x = Math.random() * (canvas.width - 32);
-      const baseSpeed = -1.0 - Math.random();
-      bottles.push({ x, y: canvas.height, width: 32, height: 64, speed: baseSpeed * difficultyMultiplier });
+      const baseSpeed = (-1.0 - Math.random()) * difficultyMultiplier * mobileSpeedBoost;
+      bottles.push({ x, y: canvas.height, width: 32, height: 64, speed: baseSpeed });
     }
 
     function updateBottles() {
@@ -90,7 +102,10 @@
         ) {
           bottles.splice(i, 1);
           health -= 1;
-          if (health <= 0) alert("Game Over! Final Score: " + score);
+          if (health <= 0 && !isGameOver) {
+            isGameOver = true;
+            setTimeout(() => alert("Game Over! Final Score: " + score), 100);
+          }
         }
       }
     }
@@ -109,19 +124,43 @@
       bottles.forEach(drawBottle);
       drawUI();
 
-      updateBottles();
-
-      frameCount++;
-      if (frameCount % 180 === 0) spawnBottle();
-      if (frameCount % 1200 === 0) difficultyMultiplier += 0.1; // Increase speed every 20 seconds
+      if (!isGameOver) {
+        updateBottles();
+        frameCount++;
+        if (frameCount % 180 === 0) spawnBottle();
+        if (frameCount % 1200 === 0) difficultyMultiplier += 0.1;
+      }
 
       requestAnimationFrame(gameLoop);
     }
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") singer.x -= singer.speed;
-      if (e.key === "ArrowRight") singer.x += singer.speed;
+      if (!isGameOver) {
+        if (e.key === "ArrowLeft") singer.x -= singer.speed;
+        if (e.key === "ArrowRight") singer.x += singer.speed;
+        constrainSinger();
+      }
     });
+
+    canvas.addEventListener("touchstart", handleTouch);
+    canvas.addEventListener("touchmove", handleTouch);
+
+    function handleTouch(e) {
+      e.preventDefault();
+      if (!isGameOver) {
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (touch.clientX - rect.left) * scale;
+        singer.x = x - singer.width / 2;
+        constrainSinger();
+      }
+    }
+
+    function constrainSinger() {
+      if (singer.x < 0) singer.x = 0;
+      if (singer.x + singer.width > canvas.width) singer.x = canvas.width - singer.width;
+    }
   </script>
 </body>
 </html>
