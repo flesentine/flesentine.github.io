@@ -78,6 +78,7 @@ function updateDifficulty() {
     let health = 100;
     let score = 0;
 let startTime = Date.now();
+let lastBeerSpawnTime = 0;
     let frameCount = 0;
     let lastBraPickupFrame = -Infinity;
     let lastHitFrame = -Infinity;
@@ -192,6 +193,13 @@ let startTime = Date.now();
     }
 
     function gameLoop() {
+
+    const now = Date.now();
+    if (!isGameOver && now - lastBeerSpawnTime > 1000 / (1 + difficultyMultiplier)) {
+        spawnBottle();
+        lastBeerSpawnTime = now;
+    }
+
       if (health < 100 && bras.length === 0 && frameCount % 600 === 0 && frameCount - lastHitFrame > 600 && frameCount - lastBraPickupFrame > 1200) {
         const x = canvas.width * 0.1 + Math.random() * (canvas.width * 0.9 - 32);
         
