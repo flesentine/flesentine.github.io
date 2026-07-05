@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>myWorld Interactive Grade 5 Quiz</title>
+<style>
+  :root {
+    --bg:#f7f6f1; --card:#ffffff; --ink:#18202a; --muted:#65707c; --accent:#2457d6;
+    --good:#19764a; --bad:#b42318; --line:#d8dbe2;
+  }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.4;
+  }
+  .wrap { max-width:900px; margin:0 auto; padding:20px; }
+  header { background:linear-gradient(135deg,#1e3d8f,#2a71e8); color:#fff; padding:24px 20px; border-radius:18px; margin-bottom:18px; }
+  h1 { margin:0 0 6px; font-size:28px; }
+  .sub { opacity:.9; font-size:15px; }
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+  button {
+    border:0; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer;
+    background:var(--accent); color:white; font-size:15px;
+  }
+  button.secondary { background:#e9ecf3; color:#1f2937; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .card {
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:18px; margin:14px 0; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .qtitle { font-weight:800; font-size:18px; margin-bottom:12px; }
+  .choices { display:grid; gap:8px; }
+  label.choice {
+    display:block; padding:12px; border:1px solid var(--line); border-radius:12px; cursor:pointer;
+    background:#fff;
+  }
+  label.choice:hover { border-color:#8fa7ed; }
+  input[type="radio"] { margin-right:8px; }
+  .result { margin-top:10px; font-weight:800; }
+  .good { color:var(--good); }
+  .bad { color:var(--bad); }
+  textarea {
+    width:100%; min-height:74px; border:1px solid var(--line); border-radius:12px; padding:10px;
+    font:inherit; box-sizing:border-box;
+  }
+  .answer {
+    display:none; margin-top:10px; padding:10px; border-left:4px solid var(--accent);
+    background:#eef3ff; border-radius:10px;
+  }
+  .scorebox {
+    position:sticky; top:0; z-index:5; background:rgba(247,246,241,.96); backdrop-filter:blur(6px);
+    padding:8px 0; border-bottom:1px solid var(--line);
+  }
+  .scorepill { display:inline-block; background:#fff; border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-weight:800; }
+  .small { color:var(--muted); font-size:13px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>California myWorld Interactive Grade 5 Quiz</h1>
+    <div class="sub">Review for the first part of the book: First Americans + Age of Exploration</div>
+  </header>
+
+  <div class="scorebox">
+    <span class="scorepill" id="score">Score: 0 / 30</span>
+    <span class="small" id="progress"> Answer the multiple choice questions, then check your score.</span>
+  </div>
+
+  <div class="toolbar">
+    <button onclick="checkAnswers()">Check Answers</button>
+    <button class="secondary" onclick="showAllAnswers()">Show Answers</button>
+    <button class="ghost" onclick="resetQuiz()">Reset</button>
+  </div>
+
+  <main id="quiz"></main>
+
+  <div class="card">
+    <h2>Short Answer Practice</h2>
+    <p class="small">These are for speaking or writing practice. Tap “Show Sample Answers” when done.</p>
+    <div id="shorts"></div>
+    <div class="toolbar">
+      <button class="secondary" onclick="toggleShortAnswers()">Show Sample Answers</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"mc": [{"q": "What was Beringia?", "choices": ["A Spanish colony", "A land bridge between Asia and North America", "A Native American ceremony", "A European ship"], "answer": 1}, {"q": "Why did early hunter-gatherers move from place to place?", "choices": ["To follow animal herds and find plants", "To build cities", "To avoid farming", "To find gold"], "answer": 0}, {"q": "What does “adapt” mean?", "choices": ["To change to survive in an environment", "To write a law", "To sail across an ocean", "To trade only with Europeans"], "answer": 0}, {"q": "Which group lived in the icy Arctic and used animals for food, clothing, tools, and fuel?", "choices": ["Aztec", "Inuit", "Spanish", "Powhatan"], "answer": 1}, {"q": "What did agriculture allow people to do?", "choices": ["Move constantly", "Build permanent villages", "Stop using tools", "Avoid water"], "answer": 1}, {"q": "Why did the Hohokam build canals?", "choices": ["To fish in the ocean", "To irrigate crops in a dry area", "To travel to Europe", "To protect themselves from snow"], "answer": 1}, {"q": "The Ancestral Pueblo are known for building homes:", "choices": ["In cliff sides", "On ships", "In igloos", "In castles"], "answer": 0}, {"q": "What were mounds used for by Mound Builder cultures?", "choices": ["Temples, burial places, and homes for leaders", "European forts only", "Sailing practice", "Horse racing"], "answer": 0}, {"q": "What is culture?", "choices": ["A group’s way of living, thinking, and celebrating", "A type of weapon", "A kind of map", "A Spanish law"], "answer": 0}, {"q": "Which natural resource was very important to the Kwakiutl of the Northwest Coast?", "choices": ["Cedar trees", "Desert sand", "Horses", "Wheat"], "answer": 0}, {"q": "Plains societies depended heavily on which animal?", "choices": ["Buffalo", "Whale", "Alligator", "Camel"], "answer": 0}, {"q": "Pueblo people believed kachinas could bring:", "choices": ["Rain and blessings", "Spanish ships", "Gold coins", "New trade routes"], "answer": 0}, {"q": "Why did tribes trade with one another?", "choices": ["To get goods they did not have nearby", "To avoid all contact", "To help Spain", "To stop farming"], "answer": 0}, {"q": "What is a confederacy?", "choices": ["A group of nations or tribes joined together", "A farming tool", "A European disease", "A type of ship"], "answer": 0}, {"q": "Which is an example of a Native American confederacy?", "choices": ["Iroquois Confederacy", "Ottoman Empire", "Portuguese Empire", "Spanish Armada"], "answer": 0}, {"q": "What is oral tradition?", "choices": ["Passing stories and history by speaking", "Writing books in Europe", "Drawing maps of oceans", "Building canals"], "answer": 0}, {"q": "Why did Europeans want new trade routes to Asia?", "choices": ["Asian goods were valuable, and old routes were expensive", "They wanted to stop trading", "They wanted to move to the Arctic", "They wanted to hunt buffalo"], "answer": 0}, {"q": "Which country became a leader in looking for a sea route to Asia?", "choices": ["Portugal", "China", "Mexico", "Canada"], "answer": 0}, {"q": "Prince Henry the Navigator helped Portugal by starting a school for:", "choices": ["Navigation", "Farming", "Painting", "Medicine"], "answer": 0}, {"q": "Which tool helped sailors know direction?", "choices": ["Compass", "Plow", "Bow and arrow", "Canoe"], "answer": 0}, {"q": "What did an astrolabe help sailors figure out?", "choices": ["How far north or south they had traveled", "How much corn to plant", "How to build a cliff house", "How to make pottery"], "answer": 0}, {"q": "Spain sponsored Columbus because Spain wanted:", "choices": ["A new route to Asia and more power", "To find the Arctic", "To join the Iroquois Confederacy", "To build mounds"], "answer": 0}, {"q": "In 1492, Columbus reached:", "choices": ["The Americas", "India", "Australia", "Antarctica"], "answer": 0}, {"q": "What were conquistadors?", "choices": ["Spanish conquerors", "Native American farmers", "Portuguese mapmakers", "English pilgrims"], "answer": 0}, {"q": "Hernán Cortés conquered which empire?", "choices": ["Aztec Empire", "Roman Empire", "Iroquois Confederacy", "Inca Empire only"], "answer": 0}, {"q": "Which helped Cortés defeat the Aztecs?", "choices": ["Steel weapons, horses, alliances, and disease", "Igloos and canoes", "The Mayflower Compact", "The Gold Rush"], "answer": 0}, {"q": "Juan Ponce de León landed in:", "choices": ["Florida", "Alaska", "Canada", "England"], "answer": 0}, {"q": "Francisco Vásquez de Coronado explored the:", "choices": ["Southwest", "Arctic", "Pacific Ocean only", "Northwest Coast only"], "answer": 0}, {"q": "What was the Columbian Exchange?", "choices": ["The transfer of plants, animals, ideas, people, and diseases between hemispheres", "A Native American confederacy", "A Spanish weapon", "A land bridge"], "answer": 0}, {"q": "Which foods came from the Americas and spread to Europe, Africa, and Asia?", "choices": ["Corn and potatoes", "Wheat and sugar", "Horses and cattle", "Pepper and cloves"], "answer": 0}], "short": [{"q": "How did geography affect Native American ways of life?", "answer": "It affected food, homes, clothing, tools, jobs, trade, and ceremonies."}, {"q": "Give one example of a Native American group adapting to its environment.", "answer": "Examples: Inuit used seals/whales/snow in the Arctic; Hohokam built canals; Pueblo built cliff homes."}, {"q": "Why did farming change the way early people lived?", "answer": "Farming gave people a steady food supply, so they could stay in one place and build villages."}, {"q": "Why were trade networks important for Native American groups?", "answer": "Trade helped groups get things they did not have in their own environment."}, {"q": "What were two reasons European countries explored across oceans?", "answer": "Wealth, trade routes, spices, power, land, spreading Christianity, and competition with other countries."}, {"q": "Explain one negative effect of the Columbian Exchange on Native Americans.", "answer": "European diseases like smallpox killed many Native Americans; many also lost land and freedom."}]};
+
+function renderQuiz() {
+  const root = document.getElementById('quiz');
+  root.innerHTML = '';
+  DATA.mc.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'card question';
+    div.dataset.answer = item.answer;
+    div.innerHTML = `
+      <div class="qtitle">${idx+1}. ${item.q}</div>
+      <div class="choices">
+        ${item.choices.map((c,i)=>`
+          <label class="choice">
+            <input type="radio" name="q${idx}" value="${i}">
+            ${String.fromCharCode(65+i)}. ${c}
+          </label>`).join('')}
+      </div>
+      <div class="result" id="r${idx}"></div>
+    `;
+    root.appendChild(div);
+  });
+
+  const shorts = document.getElementById('shorts');
+  shorts.innerHTML = '';
+  DATA.short.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="qtitle">${idx+31}. ${item.q}</div>
+      <textarea placeholder="Type or say your answer here..."></textarea>
+      <div class="answer short-answer"><b>Sample answer:</b> ${item.answer}</div>
+    `;
+    shorts.appendChild(div);
+  });
+}
+
+function checkAnswers() {
+  let correct = 0;
+  DATA.mc.forEach((item, idx) => {
+    const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+    const result = document.getElementById(`r${idx}`);
+    if (!selected) {
+      result.textContent = 'Not answered';
+      result.className = 'result bad';
+      return;
+    }
+    const chosen = Number(selected.value);
+    if (chosen === item.answer) {
+      correct++;
+      result.textContent = 'Correct';
+      result.className = 'result good';
+    } else {
+      const right = String.fromCharCode(65 + item.answer);
+      result.textContent = `Incorrect. Correct answer: ${right}`;
+      result.className = 'result bad';
+    }
+  });
+  document.getElementById('score').textContent = `Score: ${correct} / ${DATA.mc.length}`;
+  const pct = Math.round(correct / DATA.mc.length * 100);
+  document.getElementById('progress').textContent = ` ${pct}%.`;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showAllAnswers() {
+  DATA.mc.forEach((item, idx) => {
+    const input = document.querySelector(`input[name="q${idx}"][value="${item.answer}"]`);
+    if (input) input.checked = true;
+  });
+  checkAnswers();
+  document.querySelectorAll('.short-answer').forEach(el => el.style.display='block');
+}
+
+function toggleShortAnswers() {
+  document.querySelectorAll('.short-answer').forEach(el => {
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+  });
+}
+
+function resetQuiz() {
+  document.querySelectorAll('input[type="radio"]').forEach(i => i.checked = false);
+  document.querySelectorAll('.result').forEach(r => { r.textContent=''; r.className='result'; });
+  document.querySelectorAll('textarea').forEach(t => t.value='');
+  document.querySelectorAll('.short-answer').forEach(el => el.style.display='none');
+  document.getElementById('score').textContent = `Score: 0 / ${DATA.mc.length}`;
+  document.getElementById('progress').textContent = ' Answer the multiple choice questions, then check your score.';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+renderQuiz();
+</script>
+</body>
+</html>
