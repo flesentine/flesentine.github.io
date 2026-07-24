@@ -30,33 +30,48 @@ button{font:700 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border
 (()=>{
 const c=document.getElementById('dos'),x=c.getContext('2d',{alpha:false});
 const start=document.getElementById('start'),reset=document.getElementById('reset'),soundBtn=document.getElementById('sound');
-const CW=8,CH=16,COLS=80;
+let CW=8,CH=16,COLS=80;
 const pal=['#000000','#0000aa','#00aa00','#00aaaa','#aa0000','#aa00aa','#aa5500','#aaaaaa','#555555','#5555ff','#55ff55','#55ffff','#ff5555','#ff55ff','#ffff55','#ffffff'];
 let ROWS=25,mapW=76,mapH=13,mapX=2,mapY=4,N=mapW*mapH;
 let cells=[],running=false,sound=true,read=-1,write=-1,progress=0,moved=0,pass=1,elapsed=0,last=0,file='COMMAND.COM',timer=0,audio;
 const names=['COMMAND.COM','AUTOEXEC.BAT','CONFIG.SYS','HIMEM.SYS','EMM386.EXE','SMARTDRV.EXE','DOSKEY.COM','MOUSE.COM','QBASIC.EXE','EDIT.COM','DEFRAG.EXE','CHKDSK.EXE','MEM.EXE','MODE.COM','ANSI.SYS','README.TXT'];
 function layout(){
   const portrait=matchMedia('(orientation:portrait)').matches;
-  ROWS=portrait?Math.max(40,Math.round(80*innerHeight/innerWidth/2)):25;
-  mapH=ROWS-12; N=mapW*mapH; c.width=640; c.height=ROWS*CH;
+  COLS=portrait?64:80;
+  CW=10; CH=20;
+  ROWS=portrait?Math.max(40,Math.round(COLS*innerHeight/innerWidth/2)):25;
+  mapW=COLS-4; mapH=ROWS-12; mapX=2; mapY=4; N=mapW*mapH;
+  c.width=COLS*CW; c.height=ROWS*CH;
 }
-function font(){x.font='16px "Courier New",monospace';x.textBaseline='top';x.textAlign='left'}
+function font(){x.font=CH+'px "Courier New",monospace';x.textBaseline='top';x.textAlign='left'}
 function cell(ch,col=7,bg=1,cx=0,cy=0){x.fillStyle=pal[bg];x.fillRect(cx*CW,cy*CH,CW,CH);x.fillStyle=pal[col];font();x.fillText(ch,cx*CW,cy*CH-1)}
-function text(s,cx,cy,col=7,bg=1,max=80){for(let i=0;i<Math.min(s.length,max);i++)cell(s[i],col,bg,cx+i,cy)}
+function text(s,cx,cy,col=7,bg=1,max=COLS){for(let i=0;i<Math.min(s.length,max);i++)cell(s[i],col,bg,cx+i,cy)}
 function fill(bg=1){x.fillStyle=pal[bg];x.fillRect(0,0,c.width,c.height)}
 function box(x0,y0,w,h,title=''){text('╔'+'═'.repeat(w-2)+'╗',x0,y0,15,1);for(let y=1;y<h-1;y++){text('║',x0,y0+y,15,1);text('║',x0+w-1,y0+y,15,1)}text('╚'+'═'.repeat(w-2)+'╝',x0,y0+h-1,15,1);if(title)text(' '+title+' ',x0+2,y0,14,1)}
-function init(){layout();cells=Array(N).fill(0);for(let i=0;i<Math.min(56,N);i++)cells[i]=4;for(let i=56;i<N;i++){let r=Math.random();cells[i]=r<.57?1:r<.68?2:r<.74?3:0}read=write=-1;progress=moved=elapsed=0;pass=1;running=false;file=names[0];draw()}
+function init(){layout();cells=Array(N).fill(0);for(let i=0;i<Math.min(Math.floor(mapW*.75),N);i++)cells[i]=4;for(let i=Math.min(Math.floor(mapW*.75),N);i<N;i++){let r=Math.random();cells[i]=r<.57?1:r<.68?2:r<.74?3:0}read=write=-1;progress=moved=elapsed=0;pass=1;running=false;file=names[0];draw()}
 function glyph(v){return v===0?'░':v===1?'█':v===2?'▓':v===3?'▒':'X'}
 function color(v){return v===0?9:v===1?15:v===2?12:v===3?11:14}
 function draw(){fill(1);
-text(' Optimize  Configure  Information ',0,0,0,11);text(' Microsoft Defragmenter ',29,1,15,1);text('Drive C:  LOCAL DISK',2,2,15,1);text(running?'Optimizing drive...':'Press ENTER to begin optimizing',42,2,running?14:7,1);
-box(1,3,78,mapH+2,'Drive Map');
+const portrait=COLS===64;
+text(' Optimize  Configure  Information ',0,0,0,11);
+text(' Microsoft Defragmenter ',portrait?19:29,1,15,1);
+text('Drive C: LOCAL DISK',2,2,15,1);
+text(running?'Optimizing...':'Press ENTER to optimize',portrait?36:42,2,running?14:7,1);
+box(1,3,COLS-2,mapH+2,'Drive Map');
 for(let i=0;i<N;i++){let xx=mapX+(i%mapW),yy=mapY+Math.floor(i/mapW);let ch=glyph(cells[i]),co=color(cells[i]);if(i===read){ch='r';co=0;cell(ch,co,14,xx,yy)}else if(i===write){ch='W';co=15;cell(ch,co,4,xx,yy)}else cell(ch,co,1,xx,yy)}
 const statusY=mapH+5;
-box(1,statusY,48,6,'Status');box(49,statusY,30,6,'Legend');
-text('Current file : '+file.padEnd(25),3,statusY+1,15,1);text('Pass         : '+String(pass).padStart(3),3,statusY+2,15,1);text('Percent      : '+String(progress).padStart(3)+'%',3,statusY+3,15,1);text('Elapsed time : '+fmt(elapsed),3,statusY+4,15,1);
-text('░ Free space',51,statusY+1,9,1);text('█ Used clusters',51,statusY+2,15,1);text('▓ Fragmented',51,statusY+3,12,1);text('X Unmovable',51,statusY+4,14,1);
-text('Reading',2,ROWS-1,7,0);text('Writing',13,ROWS-1,7,0);text('Moved: '+String(moved).padStart(4),25,ROWS-1,7,0);text('Esc Exit   F1 Help   Enter Optimize',43,ROWS-1,7,0)
+if(portrait){
+  box(1,statusY,COLS-2,6,'Status');
+  text('File: '+file.padEnd(24),3,statusY+1,15,1);
+  text('Pass: '+String(pass).padStart(3)+'   Percent: '+String(progress).padStart(3)+'%',3,statusY+2,15,1);
+  text('Elapsed: '+fmt(elapsed)+'   Moved: '+String(moved).padStart(4),3,statusY+3,15,1);
+  text('░ Free  █ Used  ▓ Frag  X Fixed',3,statusY+4,15,1);
+}else{
+  box(1,statusY,48,6,'Status');box(49,statusY,30,6,'Legend');
+  text('Current file : '+file.padEnd(25),3,statusY+1,15,1);text('Pass         : '+String(pass).padStart(3),3,statusY+2,15,1);text('Percent      : '+String(progress).padStart(3)+'%',3,statusY+3,15,1);text('Elapsed time : '+fmt(elapsed),3,statusY+4,15,1);
+  text('░ Free space',51,statusY+1,9,1);text('█ Used clusters',51,statusY+2,15,1);text('▓ Fragmented',51,statusY+3,12,1);text('X Unmovable',51,statusY+4,14,1);
+}
+text('Reading',2,ROWS-1,7,0);text('Writing',13,ROWS-1,7,0);text('Moved: '+String(moved).padStart(4),25,ROWS-1,7,0);if(!portrait)text('Esc Exit   F1 Help   Enter Optimize',43,ROWS-1,7,0)
 }
 function fmt(ms){let s=Math.floor(ms/1000),m=Math.floor(s/60);s%=60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function beep(f=420,d=.025){if(!sound)return;try{audio ||= new (AudioContext||webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.type='square';o.frequency.value=f;g.gain.value=.025;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.stop(audio.currentTime+d)}catch{}}
